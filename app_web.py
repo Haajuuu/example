@@ -36,7 +36,7 @@ def main(page: ft.Page):
       width=140,
       text_align=ft.TextAlign.RIGHT,
       text_size=13,
-      border_color=ft.colors.EMERALD_400,
+      border_color="#10b981",
   )
   summary_text = ft.Text("", size=12, weight=ft.FontWeight.BOLD)
   coupons_list = ft.ListView(expand=1, spacing=10, padding=5)
@@ -93,7 +93,7 @@ def main(page: ft.Page):
   hedge_result_text = ft.Text(
       "Wpisz dane wyżej, aby wyliczyć kontrę.",
       size=12,
-      color=ft.colors.EMERALD_300,
+      color="#34d399",
   )
 
   # --- LOGIKA APLIKACJI ---
@@ -170,7 +170,7 @@ def main(page: ft.Page):
         actions.extend([
             ft.ElevatedButton(
                 "WIN",
-                bgcolor=ft.colors.EMERALD_600,
+                bgcolor="#059669",
                 color=ft.colors.WHITE,
                 scale=0.8,
                 on_click=lambda e, idx=real_idx: update_coupon_status(
@@ -343,7 +343,7 @@ def main(page: ft.Page):
                       "Przelicz",
                       on_click=lambda e: refresh_history(),
                       height=40,
-                      bgcolor=ft.colors.EMERALD_600,
+                      bgcolor="#059669",
                       color=ft.colors.WHITE,
                   ),
               ],
@@ -373,7 +373,7 @@ def main(page: ft.Page):
           error_text,
           ft.ElevatedButton(
               "Zapisz Kupon",
-              bgcolor=ft.colors.EMERALD_600,
+              bgcolor="#059669",
               color=ft.colors.WHITE,
               width=320,
               height=45,
@@ -389,7 +389,7 @@ def main(page: ft.Page):
           ft.Row(
               [
                   ft.Text("🔍 Skaner & Typy Live", size=16, weight=ft.FontWeight.BOLD),
-                  ft.IconButton(ft.icons.REFRESH, on_click=fetch_scanner, icon_color=ft.colors.EMERALD_400),
+                  ft.IconButton(ft.icons.REFRESH, on_click=fetch_scanner, icon_color="#34d399"),
               ],
               alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
           ),
@@ -401,7 +401,7 @@ def main(page: ft.Page):
   tips_view = ft.Column(
       [
           ft.Text("🧠 Protipy & Kalkulator Kontry", size=18, weight=ft.FontWeight.BOLD),
-          ft.Text("🛡️ Kalkulator Kontry (Redgeing):", size=14, weight=ft.FontWeight.BOLD, color=ft.colors.EMERALD_300),
+          ft.Text("🛡️ Kalkulator Kontry (Hedging):", size=14, weight=ft.FontWeight.BOLD, color="#34d399"),
           ft.Row([hedge_stake_orig, hedge_odds_orig]),
           ft.Row([
               hedge_odds_opp,
@@ -409,13 +409,13 @@ def main(page: ft.Page):
                   "Oblicz",
                   on_click=calculate_hedge,
                   height=45,
-                  bgcolor=ft.colors.EMERALD_600,
+                  bgcolor="#059669",
                   color=ft.colors.WHITE,
               ),
           ]),
           hedge_result_text,
           ft.Divider(color=ft.colors.WHITE24),
-          ft.Text("💡 Złote Zasady Profesjonalnego Grania:", size=14, weight=ft.FontWeight.BOLD, color=ft.colors.EMERALD_300),
+          ft.Text("💡 Złote Zasady Profesjonalnego Grania:", size=14, weight=ft.FontWeight.BOLD, color="#34d399"),
           ft.Text(
               "1. Graj Single lub Dublety (AKO max ~2.50) – taśmy to domena bukmachera.\n"
               "2. Zarządzanie Kapitałem – stawka pojedyncza nie powinna przekraczać 2-5% Twojego budżetu.\n"
