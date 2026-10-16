@@ -4,8 +4,8 @@ import os
 import random
 import flet as ft
 
-# Ścieżka zapisu danych
-DATA_FILE = "betmaster_web_data.json"
+# Ścieżka zapisu danych w katalogu domowym użytkownika
+DATA_FILE = os.path.expanduser("~/betmaster_data.json")
 
 
 def load_data():
@@ -26,9 +26,10 @@ def save_data(data):
 def main(page: ft.Page):
   page.title = "BetMaster Pro"
   page.theme_mode = ft.ThemeMode.DARK
-  page.padding = 0  # Usunięte domyślne paddingi strony, żeby gradient pokrył całość
+  page.padding = 0
   page.scroll = ft.ScrollMode.AUTO
 
+  # Formularz i kontrolki
   goal_input = ft.TextField(
       label="🎯 Cel Zysku (zł)",
       value="500",
@@ -50,13 +51,14 @@ def main(page: ft.Page):
           ft.dropdown.Option("Tenis"),
           ft.dropdown.Option("Hokej (NHL)"),
           ft.dropdown.Option("Koszykówka (NBA)"),
+          ft.dropdown.Option("Esport"),
           ft.dropdown.Option("Inne"),
       ],
   )
-  stake_input = ft.TextField(label="Stawka (zł)", hint_text="40")
-  odds_input = ft.TextField(label="Kurs Łączny (AKO)", hint_text="2.50")
+  stake_input = ft.TextField(label="Stawka (zł)", hint_text="50")
+  odds_input = ft.TextField(label="Kurs Łączny (AKO)", hint_text="2.15")
   match_id_input = ft.TextField(
-      label="ID Flashscore (np. bakVPDoT)", hint_text="opcjonalnie"
+      label="ID Flashscore (mid=...)", hint_text="np. bakVPDoT"
   )
   status_dropdown = ft.Dropdown(
       label="Status Początkowy",
@@ -72,8 +74,8 @@ def main(page: ft.Page):
   scanner_box = ft.TextField(
       multiline=True,
       read_only=True,
-      min_lines=14,
-      max_lines=20,
+      min_lines=12,
+      max_lines=18,
       text_size=12,
   )
 
@@ -90,6 +92,8 @@ def main(page: ft.Page):
     total_spent = sum(b["stake"] for b in data)
     closed = [b for b in data if b["status"] in ["WIN", "LOST"]]
     closed_spent = sum(b["stake"] for b in closed)
+
+    # Podatek 12%
     total_won = sum(
         (b["stake"] * 0.88 * b["odds"]) for b in closed if b["status"] == "WIN"
     )
@@ -108,10 +112,10 @@ def main(page: ft.Page):
     progress_pct = max(0.0, min(100.0, progress_pct))
 
     summary_text.value = (
-        f"💰 Wydane stawki: {total_spent:.2f} zł | Przegrane: -{total_lost_amount:.2f} zł\n"
-        f"Wygrane brutto: +{total_won:.2f} zł | ZYSK NETTO: {net_profit:+.2f} zł\n"
-        f"Skuteczność: {win_rate:.1f}% | ROI: {roi:.1f}%\n"
-        f"🎯 Cel ({target_goal:.0f} zł): Zrealizowano w {progress_pct:.1f}%"
+        f"💰 Wydano: {total_spent:.2f} zł | Przegrane: -{total_lost_amount:.2f} zł\n"
+        f"Wygrane (netto po tax 12%): +{total_won:.2f} zł\n"
+        f"📊 ZYSK NETTO: {net_profit:+.2f} zł | ROI: {roi:.1f}% | Skuteczność: {win_rate:.1f}%\n"
+        f"🎯 Cel ({target_goal:.0f} zł): Postęp {progress_pct:.1f}%"
     )
 
     for index, item in enumerate(reversed(data)):
@@ -131,7 +135,7 @@ def main(page: ft.Page):
           )
       )
 
-      match_str = f" | ID: {item['match_id']}" if item.get("match_id") else ""
+      match_str = f" | Flashscore: {item['match_id']}" if item.get("match_id") else ""
       card_info = ft.Column([
           ft.Text(
               f"{status_icon} [{item['sport']}] {item['title']}{match_str}",
@@ -139,7 +143,7 @@ def main(page: ft.Page):
               size=13,
           ),
           ft.Text(
-              f"Stawka: {item['stake']} zł | Kurs: {item['odds']} | Zysk: {item['profit']:+.2f} zł",
+              f"Stawka: {item['stake']} zł | Kurs: {item['odds']} | Zysk/Strata: {item['profit']:+.2f} zł",
               size=11,
           ),
       ], spacing=2)
@@ -258,24 +262,34 @@ def main(page: ft.Page):
   def fetch_scanner(e=None):
     now = datetime.datetime.now()
     current_date = now.strftime("%d.%m.%Y")
-    football = [
-        ("Lech Poznań – Cracovia", "Obie strzelą", "1.65"),
-        ("Jagiellonia – Pogoń", "Over 2.5", "1.60"),
-        ("Arsenal – West Ham", "Arsenal wygra", "1.45"),
-        ("Liverpool – Brighton", "BTTS - TAK", "1.55"),
+    
+    pairs = [
+        ("Arsenal – West Ham", "Arsenal wygra", 1.45),
+        ("Liverpool – Brighton", "BTTS - TAK", 1.55),
+        ("Lech Poznań – Cracovia", "Obie strzelą", 1.65),
+        ("Jagiellonia – Pogoń Szczecin", "Over 2.5 gola", 1.60),
+        ("Real Madryt – Real Betis", "Real Madryt wygra", 1.38),
+        ("FC Barcelona – Sevilla", "Barcelona over 1.5 gola", 1.42),
+        ("Inter Mediolan – Lazio", "1X i over 1.5", 1.48),
+        ("Bayern Monachium – VfB Stuttgart", "Over 3.0 goli", 1.52),
     ]
-    random.shuffle(football)
+    selected = random.sample(pairs, 2)
+    ako = round(selected[0][2] * selected[1][2], 2)
+
     scanner_box.value = (
-        f"🎯 DUBLETY NA DZIŚ [{current_date}]\n"
+        f"🎯 DUBLET DNIA [{current_date}]\n"
         + "=" * 32
-        + f"\n\n• {football[0][0]}\n  Typ: {football[0][1]} [Kurs: ~{football[0][2]}]\n\n"
-        f"• {football[1][0]}\n  Typ: {football[1][1]} [Kurs: ~{football[1][2]}]\n\n"
-        "➡️ Szacowane AKO: ~2.55\n\n💡 Pamiętaj o weryfikacji składów przed zagraniem!"
+        + f"\n\n1. {selected[0][0]}\n   Typ: {selected[0][1]} [Kurs: {selected[0][2]:.2f}]\n\n"
+        f"2. {selected[1][0]}\n   Typ: {selected[1][1]} [Kurs: {selected[1][2]:.2f}]\n\n"
+        f"➡️ SZACOWANE AKO: {ako:.2f}\n"
+        + "=" * 32
+        + "\n💡 Kliknij odśwież (prawa góra), aby wygenerować kolejny dublet!"
     )
     page.update()
 
   fetch_scanner()
 
+  # Widoki zakładek
   history_view = ft.Column(
       [
           ft.Row(
@@ -325,17 +339,57 @@ def main(page: ft.Page):
       [
           ft.Row(
               [
-                  ft.Text(
-                      "🔍 Skaner Dubletów Live",
-                      size=16,
-                      weight=ft.FontWeight.BOLD,
-                  ),
-                  ft.IconButton(ft.icons.REFRESH, on_click=fetch_scanner),
+                ft.Text("🔍 Skaner Dubletów Live", size=16, weight=ft.FontWeight.BOLD),
+                ft.IconButton(ft.icons.REFRESH, on_click=fetch_scanner),
               ],
               alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
           ),
           scanner_box,
       ]
+  )
+
+  # Nowa zakładka z szybkimi linkami do analiz i statystyk sportowych/tenisowych
+  def open_link(url):
+    page.launch_url(url)
+
+  analysis_view = ft.Column(
+      [
+          ft.Text("🔗 Narzędzia i Analizy Sportowe", size=18, weight=ft.FontWeight.BOLD),
+          ft.Text("Szybki dostęp do statystyk, H2H i tabel:", size=12, color=ft.colors.GREY_400),
+          ft.Divider(),
+          ft.ElevatedButton(
+              "📊 Flashscore (Wyniki na żywo i tabele)",
+              icon=ft.icons.SPORTS_SOCCER,
+              width=320,
+              on_click=lambda e: open_link("https://www.flashscore.pl"),
+          ),
+          ft.ElevatedButton(
+              "🎾 Tenis Explorer / Wyniki Tenisowe",
+              icon=ft.icons.SPORTS_TENNIS,
+              width=320,
+              on_click=lambda e: open_link("https://www.flashtennis.pl"),
+          ),
+          ft.ElevatedButton(
+              "📈 Sofascore (Szczegółowe statystyki & xG)",
+              icon=ft.icons.ANALYTICS,
+              width=320,
+              on_click=lambda e: open_link("https://www.sofascore.com/pl/"),
+          ),
+          ft.ElevatedButton(
+              "📉 OddsPortal (Historia i ruchy kursów)",
+              icon=ft.icons.TRENDING_UP,
+              width=320,
+              on_click=lambda e: open_link("https://www.oddsportal.com"),
+          ),
+          ft.ElevatedButton(
+              "⚽ WhoScored (Zaawansowana statystyka piłkarska)",
+              icon=ft.icons.QUERY_STATS,
+              width=320,
+              on_click=lambda e: open_link("https://www.whoscored.com"),
+          ),
+      ],
+      spacing=12,
+      horizontal_alignment=ft.CrossAxisAlignment.CENTER,
   )
 
   body_container = ft.Container(content=history_view, expand=True, padding=12)
@@ -352,6 +406,8 @@ def main(page: ft.Page):
       body_container.content = add_view
     elif idx == 2:
       body_container.content = scanner_view
+    elif idx == 3:
+      body_container.content = analysis_view
     page.update()
 
   nav_bar = ft.NavigationBar(
@@ -359,16 +415,14 @@ def main(page: ft.Page):
       on_change=nav_change,
       destinations=[
           ft.NavigationDestination(icon=ft.icons.BOOK, label="Dziennik"),
-          ft.NavigationDestination(
-              icon=ft.icons.ADD_CIRCLE_OUTLINE, label="Dodaj"
-          ),
+          ft.NavigationDestination(icon=ft.icons.ADD_CIRCLE_OUTLINE, label="Dodaj"),
           ft.NavigationDestination(icon=ft.icons.SEARCH, label="Skaner"),
+          ft.NavigationDestination(icon=ft.icons.EXPLORE, label="Analiza"),
       ],
   )
 
   page.navigation_bar = nav_bar
 
-  # Główny kontener z eleganckim gradientem jako tło całej aplikacji
   root_background = ft.Container(
       content=body_container,
       gradient=ft.LinearGradient(
@@ -378,7 +432,7 @@ def main(page: ft.Page):
               "#0f172a",
               "#1e1b4b",
               "#090d16",
-          ],  # Głęboki granat wpadający w ciemny fiolet i czerń
+          ],
       ),
       expand=True,
   )
